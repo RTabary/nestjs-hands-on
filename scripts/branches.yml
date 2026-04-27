@@ -1,0 +1,26 @@
+# Branch-publishing manifest for the NestJS workshop.
+#
+# Each entry maps a logical step name to the authoring commit pair that
+# materialises its `start/<step>` and `solution/<step>` branches.
+#
+# Per research.md R1, A_x is BOTH solution/0x AND start/0(x+1) for the
+# core sequence, so most entries reference the same commit twice.
+#
+# Stretch entries reference A8 as the start, and a unique authoring
+# branch tip as the solution (one per stretch — they are not chained).
+#
+# Format:
+#   - name: <step-slug>           # branch suffix after start/ and solution/
+#     start: <git-rev>            # commit for `start/<name>`
+#     solution: <git-rev>         # commit for `solution/<name>`
+#
+# Run `bash scripts/publish-branches.sh` to publish (idempotent).
+
+# Initially empty — entries are appended as each Ax commit lands.
+# After A1 (step 01 done), the first entry is:
+#   - name: 01-bootstrap-modules
+#     start: A0
+#     solution: A1
+# (Replace `A0` / `A1` with real commit SHAs.)
+
+branches: []
