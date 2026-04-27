@@ -6,13 +6,9 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import type { Request } from 'express';
+import { AppConfigService } from '../config/app-config.service';
 import { IS_PUBLIC_KEY } from './public.decorator';
 
-/**
- * Step 06: hard-coded API key. Step 07 relocates this to the
- * ConfigService so the value lives in .env.
- */
-export const WORKSHOP_API_KEY = 'pit-pass';
 const API_KEY_HEADER = 'x-api-key';
 
 /**
@@ -21,17 +17,19 @@ const API_KEY_HEADER = 'x-api-key';
  * Reflector reads the @Public() metadata from the route handler OR
  * its controller class. If the route opts out, the guard returns
  * true unconditionally. Otherwise it checks the x-api-key header
- * against the workshop's constant.
+ * against AppConfigService's configured key.
  *
- * .NET parallel: this is the moral equivalent of a custom
- * AuthorizationHandler + an [Authorize] policy. NestJS guards run
- * in the request lifecycle BEFORE pipes (so before validation) —
- * different ordering from .NET, where authorisation runs after model
- * binding.
+ * Step 06 (where this guard was introduced) used a hard-coded
+ * constant. Step 07 relocates that to .env via AppConfigService —
+ * the change is invisible to clients but follows the same pattern
+ * IConfiguration / IOptions<T> serves in ASP.NET Core.
  */
 @Injectable()
 export class ApiKeyGuard implements CanActivate {
-  constructor(private readonly reflector: Reflector) {}
+  constructor(
+    private readonly reflector: Reflector,
+    private readonly appConfig: AppConfigService,
+  ) {}
 
   canActivate(context: ExecutionContext): boolean {
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
@@ -42,7 +40,7 @@ export class ApiKeyGuard implements CanActivate {
 
     const request = context.switchToHttp().getRequest<Request>();
     const provided = request.headers[API_KEY_HEADER];
-    if (provided === WORKSHOP_API_KEY) return true;
+    if (provided === this.appConfig.getApiKey()) return true;
 
     throw new UnauthorizedException('Missing or invalid x-api-key header');
   }

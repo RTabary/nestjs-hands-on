@@ -5,6 +5,7 @@ import { AppService } from './app.service';
 import { ApiKeyGuard } from './auth/api-key.guard';
 import { AuthModule } from './auth/auth.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
+import { ConfigurationModule } from './config/configuration.module';
 import { GaragesModule } from './garages/garages.module';
 import { MaintenanceOrdersModule } from './maintenance-orders/maintenance-orders.module';
 import { ManufacturersModule } from './manufacturers/manufacturers.module';
@@ -15,6 +16,7 @@ import { VehiclesModule } from './vehicles/vehicles.module';
 
 @Module({
   imports: [
+    ConfigurationModule,
     SeedModule,
     AuthModule,
     ManufacturersModule,

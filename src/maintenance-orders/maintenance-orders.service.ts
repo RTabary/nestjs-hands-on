@@ -4,6 +4,8 @@ import {
   NotFoundException,
   OnModuleInit,
 } from '@nestjs/common';
+import { AppConfigService } from '../config/app-config.service';
+import { MaintenanceQueueFullException } from '../common/exceptions/maintenance-queue-full.exception';
 import { MissingFluxCapacitorException } from '../common/exceptions/missing-flux-capacitor.exception';
 import { OutOfStockException } from '../common/exceptions/out-of-stock.exception';
 import { MechanicsService } from '../mechanics/mechanics.service';
@@ -31,6 +33,7 @@ export class MaintenanceOrdersService implements OnModuleInit {
     private readonly vehicles: VehiclesService,
     private readonly mechanics: MechanicsService,
     private readonly spareParts: SparePartsService,
+    private readonly appConfig: AppConfigService,
   ) {}
 
   onModuleInit(): void {
@@ -68,6 +71,7 @@ export class MaintenanceOrdersService implements OnModuleInit {
         'scheduledFor must not be in the past at creation time',
       );
     }
+    this.assertQueueHasRoom();
     const id = `MO${String(this.nextNum++).padStart(3, '0')}`;
     const now = new Date();
     const order: MaintenanceOrder = {
@@ -133,6 +137,17 @@ export class MaintenanceOrdersService implements OnModuleInit {
     };
     this.store.set(id, updated);
     return updated;
+  }
+
+  private assertQueueHasRoom(): void {
+    const limit = this.appConfig.getMaintenanceQueueLimit();
+    let queued = 0;
+    for (const order of this.store.values()) {
+      if (order.status === 'queued') queued++;
+    }
+    if (queued >= limit) {
+      throw new MaintenanceQueueFullException(limit);
+    }
   }
 
   private assertValidReferences(dto: CreateMaintenanceOrderDto): void {
