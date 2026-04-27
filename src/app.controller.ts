@@ -1,7 +1,17 @@
-import { Controller } from '@nestjs/common';
+import { Controller, Get } from '@nestjs/common';
+import { AppService } from './app.service';
 
 @Controller()
 export class AppController {
-  // TODO step 01: implement GET /health and GET /vroom here.
-  // See docs/steps/01-bootstrap-modules.md for the walkthrough.
+  constructor(private readonly appService: AppService) {}
+
+  @Get('health')
+  getHealth() {
+    return this.appService.getHealth();
+  }
+
+  @Get('vroom')
+  getVroom() {
+    return this.appService.getVroom();
+  }
 }
