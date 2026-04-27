@@ -52,12 +52,34 @@ the user can override via `/speckit-clarify` if needed.
 case, or success criterion. SCs are user/business-facing and avoid framework
 internals (no "API response time", no "DI container resolution time").
 
+### Clarification round — Session 2026-04-27
+
+`/speckit-clarify` ran on 2026-04-27 and answered 5 high-impact questions:
+
+1. **Core curriculum scope** → Added Testing as the 8th core step (accept
+   near-zero summed-budget slack as the tradeoff).
+2. **Pacing model** → Pure self-paced; instructor is reactive only.
+   Triggered FR-016 and reshaped FR-008's mitigation to be per-attendee.
+3. **Stretch branches authoring** → Author all five stretch features
+   (Interceptors, Persistence, OpenAPI, WebSockets, Microservices) as part
+   of this delivery; total 13 step branch pairs. Stretch branches are not
+   chained — each branches off `solution/08-testing` independently.
+4. **Per-step "I'm done" signal** → HTTP-level checkpoint test per step
+   (curl-equivalent e2e). Added FR-017 and updated FR-005's "Try it"
+   structure to a "Try it + Checkpoint" pair.
+5. **Target group size** → 2 attendees for the first run (near-1:1 with
+   instructor); materials still meet self-service quality bar so the
+   same content scales to 10–25 future cohorts unchanged.
+
+The Guards-mocked-auth and Persistence-out-of-core-only assumptions were
+**not** challenged in clarification and remain the informed defaults
+documented in the Assumptions section.
+
 ### Potential follow-ups
 
-- Consider running `/speckit-clarify` if the user wants to revisit:
-  - The exact 7 core features (FR-007) — currently picked as informed default.
-  - Whether the Guards step uses mocked auth vs. a real JWT flow.
-  - Whether persistence (TypeORM/SQLite) belongs in the core 2-hour body
-    rather than as a stretch step.
+- The summed-budget slack is now near-zero (FR-008). Worth re-checking
+  during `/speckit-plan` once the per-step time estimates are concrete —
+  if any single step looks unavoidably > 18 min, the spec may need a
+  revision to demote that feature back into stretch.
 - Items marked incomplete (none currently) require spec updates before
-  `/speckit-clarify` or `/speckit-plan`.
+  `/speckit-plan`.

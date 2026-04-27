@@ -5,6 +5,16 @@
 **Status**: Draft
 **Input**: User description: "this project is a hand on made to discover nestJS framework. It should cover all main features. Each nestjs feature lives on its own branch for start and an other branch target is also set. Attendees can switch branch easily to discover and implement features. The project should be a web API related to cars or auto parts. This should be fun for attendees. write a markdown file for each step and explain principles / how to. try to find some fun ways to discover the framework. Target is C# / .net devs so you can make parallells with this framework. hands on will last 2 hours."
 
+## Clarifications
+
+### Session 2026-04-27
+
+- Q: Confirm core curriculum scope (which features, in what count) → A: Add Testing as the 8th core step; accept that the summed core budget approaches the full 120-minute window with effectively no built-in slack.
+- Q: How is the room paced through the eight steps? → A: Pure self-paced — attendees move when ready, instructor is available for help only, no synchronized checkpoints.
+- Q: Are the stretch branches authored as part of this delivery, or deferred? → A: All five stretch features (Interceptors, Persistence, OpenAPI, WebSockets, Microservices) are authored alongside the core 8 — total 13 step branch pairs. Stretch branches are not chained: each branches off the final core solution independently so an attendee can explore any one without doing the others.
+- Q: How does an attendee know — by themselves — that a step is correctly completed? → A: Automated test per step, written as an HTTP-level (curl-equivalent) e2e assertion. The test exercises the API the same way a `curl` would; green = step done. The literal `curl` command also appears in the step markdown's "Try it" section as a discovery aid, but the test is the canonical checkpoint.
+- Q: What audience size is the design optimized for? → A: 2 attendees (near-1:1 with the instructor). The materials are still authored to self-service standards (per FR-016) so they remain reusable for larger future cohorts, but pacing-slack and self-service-rigor edge cases (help queues, FAQ deflection, room synchronization) are explicitly de-prioritized for the first run.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Get the engine running in under 10 minutes (Priority: P1)
@@ -119,13 +129,16 @@ step within 120 minutes wall-clock excluding intro and Q&A.
 
 **Acceptance Scenarios**:
 
-1. **Given** the curriculum's core steps, **When** their time budgets
-   are summed, **Then** the total is at most 110 minutes (leaving 10
-   minutes of slack out of the 120).
-2. **Given** an attendee falls behind on one step, **When** they reach
-   the next step, **Then** they can re-sync by checking out the next
-   `start/<step>` (which contains all prior solutions) without redoing
-   the missed step.
+1. **Given** the curriculum's eight core steps, **When** their time
+   budgets are summed, **Then** the total is at most 120 minutes (the
+   full workshop window). Slack is per-attendee (skip ahead via the
+   next `start/<step>`), not room-wide.
+2. **Given** an attendee falls behind on one step, **When** they
+   notice their elapsed time exceeds the step's stated budget, **Then**
+   they can re-sync without instructor intervention by checking out
+   the next `start/<step>` (which contains all prior solutions),
+   optionally returning later to diff against the missed
+   `solution/<step>`.
 
 ---
 
@@ -207,25 +220,79 @@ elements that would not appear in a production codebase.
 - **FR-005**: Each step MUST have a companion markdown file under
   `docs/steps/<NN>-<feature-slug>.md` containing, in order: Learning
   objectives, Principle / theory, ".NET parallel" callout, How to
-  (step-by-step), Try it (commands + expected output), Going further
+  (step-by-step), Try it (the literal `curl` command + the expected
+  response, used as a discovery aid), Checkpoint (the test command
+  the attendee runs to confirm completion — see FR-017), Going further
   (optional stretch), Common pitfalls.
 - **FR-006**: Each step's ".NET parallel" callout MUST name at least
   one closest-equivalent ASP.NET Core or .NET construct and note one
   point where the analogy breaks.
-- **FR-007**: The core curriculum MUST cover the foundational NestJS
-  features needed to read and write a typical NestJS service. The
-  selected core set is: (1) Bootstrap & Modules, (2) Controllers &
-  Routing, (3) Providers & Dependency Injection, (4) DTOs & Validation
-  Pipes, (5) Exception Filters, (6) Guards, (7) Configuration.
-  Additional features (Interceptors, Persistence, Testing, OpenAPI,
-  WebSockets, Microservices) MAY appear as optional stretch steps but
-  MUST NOT be required to fit within the 2-hour budget.
-- **FR-008**: The summed time budget of the core steps MUST be at most
-  110 minutes, leaving at least 10 minutes of slack out of the 120-minute
-  total.
-- **FR-009**: Each `start/<step>` MUST contain the cumulative solutions
-  of all prior steps, so an attendee who falls behind can re-join at
-  any step without backfill.
+- **FR-007**: The curriculum MUST cover both a core set and a stretch
+  set, all authored as part of this delivery.
+    - **Core (8 steps, in order, fits within the 2-hour body)**:
+      (1) Bootstrap & Modules, (2) Controllers & Routing,
+      (3) Providers & Dependency Injection, (4) DTOs & Validation
+      Pipes, (5) Exception Filters, (6) Guards, (7) Configuration,
+      (8) Testing.
+    - **Stretch (5 steps, authored but not required to fit in the
+      2-hour body)**: Interceptors, Persistence (TypeORM + SQLite),
+      OpenAPI, WebSockets, Microservices.
+    - **Stretch branching topology**: Each stretch step's
+      `start/<stretch>` branches off the final core solution
+      (`solution/08-testing`) independently. Stretch steps are NOT
+      chained — an attendee may pick any stretch step in any order
+      without first completing other stretch steps. (This relaxes
+      FR-009 for stretch only; cumulative solutions still apply
+      across the core sequence.)
+    - Stretch numbering uses a separate `S` prefix to make the split
+      visible in branch names: `start/S1-interceptors`,
+      `solution/S1-interceptors`, etc.
+- **FR-008**: The summed time budget of the eight core steps MUST be at
+  most 120 minutes (the full workshop window). The curriculum
+  explicitly accepts a tight, near-zero-slack pace as a tradeoff for
+  including Testing in the core set. Because pacing is self-directed
+  (FR-016), the slack mechanism is **per-attendee**, not room-wide:
+  each step markdown MUST tell the attendee what to do if they have
+  been on that step longer than its stated budget (specifically, jump
+  to the next `start/<step>` and continue, optionally diffing against
+  the matching `solution/<step>` later).
+- **FR-016**: Pacing is **pure self-paced**. The instructor's role is
+  reactive (answer questions, unblock individuals), not directive (no
+  synchronized step transitions). Consequently:
+    1. Step markdowns MUST be authored to function with zero live
+       commentary — anything an attendee needs to know to start, do,
+       or finish the step MUST be in the markdown.
+    2. Each step markdown MUST display its expected time budget at the
+       top (e.g., "Estimated time: 12 min").
+    3. The README MUST give attendees an explicit "I'm falling behind"
+       protocol (skip to next `start/<step>` rather than ask the
+       instructor for an extension).
+    4. SC-002's 80%-completion target is interpreted at the
+       individual-attendee level; no room-wide synchronization is
+       required to claim it.
+- **FR-017**: Every step (core and stretch) MUST ship with at least one
+  **HTTP-level checkpoint test** — an e2e test that exercises the API
+  the same way a `curl` would (request method + path + body in,
+  response status + body out). This test serves as the attendee's
+  unambiguous "step done" signal in the self-paced model (FR-016).
+    1. On the `start/<step>` branch the checkpoint test MUST exist and
+       MUST fail (red), giving the attendee a clear target.
+    2. On the `solution/<step>` branch the checkpoint test MUST pass
+       (green).
+    3. The checkpoint test MUST be runnable via a single documented
+       command shown at the top of the step's markdown.
+    4. The checkpoint test MUST NOT depend on internal implementation
+       details (no mocking of NestJS internals, no probing private
+       fields) — only the public HTTP surface.
+    5. Steps introduced before the formal Testing step (step 8) MAY
+       present the checkpoint test as "type this command and look for
+       green"; the attendee is not expected to read or write test
+       code until step 8 introduces it explicitly.
+- **FR-009**: Within the **core** sequence, each `start/<step>` MUST
+  contain the cumulative solutions of all prior core steps, so an
+  attendee who falls behind can re-join at any core step without
+  backfill. (Stretch steps are exempt from cumulative chaining per
+  FR-007's stretch-branching-topology clause.)
 - **FR-010**: The `main` branch MUST represent the canonical, fully
   completed workshop state — never a half-finished step or a
   work-in-progress.
@@ -283,8 +350,9 @@ the shared baseline.*
 - **SC-003**: 100% of step branches can be entered (`git checkout
   start/<step>`) and exited (`git checkout solution/<step>`) on a
   clean working tree with no manual reset, in under 15 seconds each.
-- **SC-004**: Median time spent per core step is between 12 and 18
-  minutes (so the curriculum neither rushes nor drags).
+- **SC-004**: Median time spent per core step is between 10 and 15
+  minutes (eight steps × ~14 min ≈ 112 min, fitting the 120-minute
+  window without rushing the longer steps).
 - **SC-005**: 90% of attendees, when post-quizzed, can correctly
   answer "what role does a NestJS module play?" and "name the .NET
   construct closest to a NestJS provider".
@@ -314,21 +382,39 @@ the shared baseline.*
   10–15 minutes for instructor intro, environment check, and Q&A is
   budgeted separately and is not counted against FR-008.
 - "Cover all main NestJS features" is interpreted, given the 2-hour
-  budget, as "cover the seven foundational features named in FR-007 in
-  depth, and offer the remaining features as optional stretch
-  branches" — rather than a shallow tour of every feature.
-- Persistence is **out of scope** for the core curriculum (in-memory
-  repositories only). A relational-persistence stretch step MAY be
-  authored later but is not part of the 2-hour body.
+  budget, as: cover the eight foundational features named in FR-007's
+  core list in depth within the workshop body, and additionally ship
+  five stretch features (Interceptors, Persistence with TypeORM +
+  SQLite, OpenAPI, WebSockets, Microservices) as authored branch
+  pairs for post-workshop or fast-finisher use. This is broader than
+  "core only" but still in-scope for this delivery.
+- The eighth step (Testing) is included at the explicit request of the
+  workshop owner. The cost is near-zero summed-budget slack (FR-008);
+  the mitigation is per-attendee skip-ahead (FR-016), not a room-wide
+  intervention.
+- Persistence is **out of scope** for the **core** curriculum
+  (in-memory repositories only) so the core stays runnable with no
+  external dependencies. The Persistence stretch step adds TypeORM +
+  SQLite on top of the final core solution.
 - The Guards step uses a mocked authentication header (e.g., a static
   API key or a "logged-in user" stub), not a full JWT/OAuth2 flow,
   to keep within the time budget.
 - A live instructor is available throughout the workshop to unblock
-  individuals; the curriculum does not need to be 100% self-service,
-  though step markdowns aim for it.
+  individuals on a reactive basis only. Per FR-016, pacing is fully
+  self-directed: the instructor does not call step transitions, and
+  the curriculum is therefore expected to be 100% self-service in its
+  written form (markdowns + README), with the instructor as a
+  troubleshooting fallback rather than a narrator.
 - Workshop format is in-person or live virtual with screen-sharing,
   not async / on-demand. Async use is a happy side-effect, not a
   design target.
+- Target audience size for the **first run** is **2 attendees**
+  (effectively 1:1 with the instructor). The curriculum is still
+  authored to FR-016's full self-service standard so the same
+  materials work unchanged for larger future cohorts (10–25); the
+  small initial size simply means the per-attendee help bandwidth is
+  generous and SC-002's 80%-completion target should be effectively
+  guaranteed barring broken materials.
 - The repository is hosted on a Git provider (GitHub or equivalent)
   reachable by attendees; `git clone` over HTTPS is the supported
   fetch path.
