@@ -36,3 +36,9 @@ branches:
   - name: 04-dtos-validation-pipes
     start: 247e964
     solution: 4507945
+  - name: 05-exception-filters
+    start: 4507945
+    solution: b03e886
+  - name: 06-guards
+    start: b03e886
+    solution: 1d93505
