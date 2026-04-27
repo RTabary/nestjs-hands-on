@@ -45,3 +45,6 @@ branches:
   - name: 07-configuration
     start: 1d93505
     solution: dbc4217
+  - name: 08-testing
+    start: dbc4217
+    solution: 9ba56fd
