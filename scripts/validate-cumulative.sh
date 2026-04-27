@@ -47,7 +47,13 @@ overall_exit=0
 
 for branch in "${BRANCHES[@]}"; do
   step_slug="${branch#solution/}"
-  echo "[validate-cumulative] checking ${branch} (pattern: ${step_slug})"
+  # Extract the leading numeric prefix (e.g., "01" from
+  # "01-bootstrap-modules"). Test files are named "<NN>-<short>.e2e-spec.ts"
+  # so the leading "NN-" pattern matches the right test even when the
+  # branch slug and test file's <short> don't match exactly (e.g., the
+  # branch is "01-bootstrap-modules" but the test is "01-bootstrap").
+  step_num="${step_slug%%-*}"
+  echo "[validate-cumulative] checking ${branch} (pattern: ${step_num}-)"
   git checkout --quiet "${branch}" || {
     echo "[validate-cumulative] FAIL ${branch}: checkout failed"
     FAILS+=("${branch}")
@@ -55,7 +61,11 @@ for branch in "${BRANCHES[@]}"; do
     continue
   }
 
-  if npm run test:e2e -- "${step_slug}" >/dev/null 2>&1; then
+  # The FR-017 invariant: on solution/<N>, the test for step N must
+  # pass. The next step's test (which exists on this branch as the
+  # cumulative red target for the next start branch) is intentionally
+  # NOT included by this filter.
+  if npm run test:e2e -- "${step_num}-" >/dev/null 2>&1; then
     PASSES+=("${branch}")
     echo "[validate-cumulative] PASS ${branch}"
   else
