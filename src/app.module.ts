@@ -1,10 +1,11 @@
 import { Module, ValidationPipe } from '@nestjs/common';
-import { APP_FILTER, APP_GUARD, APP_PIPE } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ApiKeyGuard } from './auth/api-key.guard';
 import { AuthModule } from './auth/auth.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
+import { TurboBoostInterceptor } from './common/interceptors/turbo-boost.interceptor';
 import { ConfigurationModule } from './config/configuration.module';
 import { GaragesModule } from './garages/garages.module';
 import { MaintenanceOrdersModule } from './maintenance-orders/maintenance-orders.module';
@@ -44,6 +45,12 @@ import { VehiclesModule } from './vehicles/vehicles.module';
     {
       provide: APP_GUARD,
       useClass: ApiKeyGuard,
+    },
+    {
+      // Stretch S1: global interceptor adds X-Response-Time header
+      // to every response and logs request duration.
+      provide: APP_INTERCEPTOR,
+      useClass: TurboBoostInterceptor,
     },
   ],
 })
