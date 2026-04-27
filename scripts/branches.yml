@@ -30,3 +30,9 @@ branches:
   - name: 02-controllers-routing
     start: e294344
     solution: 7963f72
+  - name: 03-providers-dependency-injection
+    start: 7963f72
+    solution: 247e964
+  - name: 04-dtos-validation-pipes
+    start: 247e964
+    solution: 4507945
