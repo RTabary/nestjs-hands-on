@@ -42,15 +42,15 @@ Research [R13](./research.md#r13-open-question-deferred-to-phase-2--speckittasks
 
 **Purpose**: Project initialization. Lands as commit **A0** on the authoring backbone (which is, by design, also `start/01-bootstrap-modules`).
 
-- [ ] T001 Scaffold the NestJS application at the repo root: `npx @nestjs/cli new . --strict --skip-git --package-manager npm`. Resolve any conflicts with the existing `specs/`, `.specify/`, `.claude/` directories by keeping them out of the scaffold.
-- [ ] T002 [P] Pin Node engine in `package.json`: `"engines": { "node": ">=22.0.0" }`. Verify `tsconfig.json` has `"strict": true` and `"target": "ES2022"`.
-- [ ] T003 [P] Configure Jest test scripts in `package.json`: ensure `test`, `test:watch`, `test:cov`, `test:e2e` scripts exist; ensure `test/jest-e2e.json` exists with `testRegex: '.e2e-spec.ts$'`.
-- [ ] T004 [P] Author `.gitignore` covering `node_modules/`, `dist/`, `.env`, `data/` (the SQLite directory used by the S2 stretch), `coverage/`.
-- [ ] T005 [P] Author `.env.example` (empty placeholder; populated for real in step 07).
-- [ ] T006 [P] Create `docs/steps/` directory with 13 empty placeholder files (`01-bootstrap-modules.md` through `08-testing.md` and `S1-interceptors.md` through `S5-microservices.md`). Placeholder content: a single-line title only — full content lands in per-step tasks.
-- [ ] T007 [P] Create the branch-authoring tooling: `scripts/branches.yml` (manifest mapping logical step names → authoring commits) and `scripts/publish-branches.sh` (idempotent `git branch -f` runner per [research.md R1](./research.md#r1-branch-authoring-strategy-the-26-branches-problem)). Initial manifest may be empty — entries are appended as each Ax commit lands.
-- [ ] T008 [P] Author `scripts/validate-cumulative.sh` — checks out each `solution/<step>`, runs the matching checkpoint test, and exits non-zero if any one fails. Used in T070 (US4 audit).
-- [ ] T009 Commit the scaffold as **A0** (commit message `feat: A0 — workshop scaffold (start/01-bootstrap-modules entry)`). Tag implicitly = `start/01-bootstrap-modules` once T056 publishes it.
+- [X] T001 Scaffold the NestJS application at the repo root: `npx @nestjs/cli new . --strict --skip-git --package-manager npm`. Resolve any conflicts with the existing `specs/`, `.specify/`, `.claude/` directories by keeping them out of the scaffold. *(Hand-authored at A0 — `0882cb0` — instead of using `nest new` to keep the `.specify/`/`.claude/` directories untouched and to pin NestJS 11 / TS 5.7 directly.)*
+- [X] T002 [P] Pin Node engine in `package.json`: `"engines": { "node": ">=22.0.0" }`. Verify `tsconfig.json` has `"strict": true` and `"target": "ES2022"`. *(Done in A0.)*
+- [X] T003 [P] Configure Jest test scripts in `package.json`: ensure `test`, `test:watch`, `test:cov`, `test:e2e` scripts exist; ensure `test/jest-e2e.json` exists with `testRegex: '.e2e-spec.ts$'`. *(Done in A0.)*
+- [X] T004 [P] Author `.gitignore` covering `node_modules/`, `dist/`, `.env`, `data/` (the SQLite directory used by the S2 stretch), `coverage/`. *(Done in A0.)*
+- [X] T005 [P] Author `.env.example` (empty placeholder; populated for real in step 07). *(Done in A0.)*
+- [X] T006 [P] Create `docs/steps/` directory with 13 empty placeholder files (`01-bootstrap-modules.md` through `08-testing.md` and `S1-interceptors.md` through `S5-microservices.md`). Placeholder content: a single-line title only — full content lands in per-step tasks. *(Done in A0.)*
+- [X] T007 [P] Create the branch-authoring tooling: `scripts/branches.yml` (manifest mapping logical step names → authoring commits) and `scripts/publish-branches.sh` (idempotent `git branch -f` runner per [research.md R1](./research.md#r1-branch-authoring-strategy-the-26-branches-problem)). Initial manifest may be empty — entries are appended as each Ax commit lands. *(Done in A0; manifest is empty `branches: []` until A1 lands.)*
+- [X] T008 [P] Author `scripts/validate-cumulative.sh` — checks out each `solution/<step>`, runs the matching checkpoint test, and exits non-zero if any one fails. Used in T070 (US4 audit). *(Done in A0.)*
+- [X] T009 Commit the scaffold as **A0** (commit message `feat: A0 — workshop scaffold (start/01-bootstrap-modules entry)`). Tag implicitly = `start/01-bootstrap-modules` once T056 publishes it. *(Commit `0882cb0`.)*
 
 ---
 
@@ -81,7 +81,7 @@ Research [R13](./research.md#r13-open-question-deferred-to-phase-2--speckittasks
 ### Step 01 — Bootstrap & Modules (A1)
 
 - [ ] T015 [US1] Implement `GET /health` and `GET /vroom` per [contracts/01-bootstrap.md](./contracts/01-bootstrap.md) in `src/app.controller.ts` and `src/app.service.ts`. The `/vroom` fact list is hard-coded in `src/app.service.ts`.
-- [ ] T016 [P] [US1] Author the checkpoint test at `test/01-bootstrap.e2e-spec.ts` (≤ 25 lines) — passes on A1, fails on A0.
+- [X] T016 [P] [US1] Author the checkpoint test at `test/01-bootstrap.e2e-spec.ts` (≤ 25 lines) — passes on A1, fails on A0. *(Pulled into A0 — `0882cb0` — because FR-017 requires the checkpoint test to exist on `start/<step>`, which is A0 for step 01. Verified failing locally with two 404s on /health and /vroom.)*
 - [ ] T017 [P] [US1] Author `docs/steps/01-bootstrap-modules.md` with all 7 mandated sections (Learning objectives, Principle, **.NET parallel** quoting `docs/dotnet-parallels.md` rows for `@Module` + `@Injectable()`, How to, Try it, Checkpoint, Going further, Common pitfalls). Front-matter must include `Estimated time: 8 min` (per [R2](./research.md#r2-per-step-time-budget-allocation-does-120-min-hold)).
 - [ ] T018 [US1] Commit as **A1** (`feat: A1 — step 01 bootstrap & modules`). Append `01-bootstrap-modules` entry to `scripts/branches.yml` mapping start→A0, solution→A1.
 
