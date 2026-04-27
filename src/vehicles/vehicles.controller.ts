@@ -9,6 +9,7 @@ import {
   Patch,
   Post,
 } from '@nestjs/common';
+import { Public } from '../auth/public.decorator';
 import { CompatibilityService } from '../spare-parts/compatibility.service';
 import { CreateVehicleDto } from './dto/create-vehicle.dto';
 import { UpdateVehicleDto } from './dto/update-vehicle.dto';
@@ -21,16 +22,19 @@ export class VehiclesController {
     private readonly compatibility: CompatibilityService,
   ) {}
 
+  @Public()
   @Get()
   findAll() {
     return this.vehiclesService.findAll();
   }
 
+  @Public()
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.vehiclesService.findOne(id);
   }
 
+  @Public()
   @Get(':id/compatible-parts')
   findCompatibleParts(@Param('id') id: string) {
     return this.compatibility.findCompatible(id);

@@ -9,6 +9,7 @@ import {
   Patch,
   Post,
 } from '@nestjs/common';
+import { Public } from '../auth/public.decorator';
 import { CreateMaintenanceOrderDto } from './dto/create-maintenance-order.dto';
 import { TransitionStatusDto } from './dto/transition-status.dto';
 import { UpdateMaintenanceOrderDto } from './dto/update-maintenance-order.dto';
@@ -18,8 +19,9 @@ import { MaintenanceOrdersService } from './maintenance-orders.service';
 export class MaintenanceOrdersController {
   constructor(private readonly orders: MaintenanceOrdersService) {}
 
-  @Get() findAll() { return this.orders.findAll(); }
-  @Get(':id') findOne(@Param('id') id: string) { return this.orders.findOne(id); }
+  @Public() @Get() findAll() { return this.orders.findAll(); }
+  @Public() @Get(':id') findOne(@Param('id') id: string) { return this.orders.findOne(id); }
+
   @Post() create(@Body() dto: CreateMaintenanceOrderDto) {
     return this.orders.create(dto);
   }

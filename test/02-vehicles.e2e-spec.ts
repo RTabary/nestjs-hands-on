@@ -20,11 +20,15 @@ describe('Step 02 — Controllers & Routing (e2e)', () => {
   });
 
   it('POST /vehicles creates a vehicle and round-trips via GET /:id', async () => {
-    // manufacturerId is unused on solution/02 (no validation yet), but
-    // becomes required from step 04 onward. Including it here keeps
-    // this test green across the cumulative chain.
+    // Two forward-compat fields baked into this body keep the test
+    // green across the cumulative chain:
+    //   - manufacturerId: ignored on solution/02, required from
+    //     solution/04 onward (validation pipe).
+    //   - x-api-key header: ignored on solution/02..05, required
+    //     from solution/06 onward (ApiKeyGuard).
     const create = await request(app.getHttpServer())
       .post('/vehicles')
+      .set('x-api-key', 'pit-pass')
       .send({
         make: 'Mini',
         model: 'Cooper',
