@@ -3,7 +3,7 @@ import { APP_FILTER, APP_GUARD, APP_PIPE } from '@nestjs/core';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ApiKeyGuard } from './auth/api-key.guard';
-import { AuthModule } from './auth/auth.module';
+import { PitCrewModule } from './auth/pit-crew.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { ConfigurationModule } from './config/configuration.module';
 import { GaragesModule } from './garages/garages.module';
@@ -18,7 +18,7 @@ import { VehiclesModule } from './vehicles/vehicles.module';
   imports: [
     ConfigurationModule,
     SeedModule,
-    AuthModule,
+    PitCrewModule,
     ManufacturersModule,
     SparePartsModule,
     VehiclesModule,
