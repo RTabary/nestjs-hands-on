@@ -23,11 +23,42 @@ includes a `.NET parallel` callout. The canonical mapping table —
 
 ## Prerequisites
 
-_Section body lands in [T024](./specs/001-nestjs-workshop/tasks.md) once step 02 ships._
+Run each command. Each must produce a version string, not an error:
+
+```bash
+node --version    # → v22.x.y or newer (Node.js 22 LTS)
+npm --version     # → 10.x or newer
+git --version     # → any 2.x
+```
+
+A code editor with TypeScript syntax highlighting (VS Code recommended).
+
+**Windows attendees**: prefer **Git Bash** as your terminal. PowerShell aliases `curl` to `Invoke-WebRequest`, which uses incompatible syntax.
 
 ## First 5 minutes
 
-_Section body lands in [T024](./specs/001-nestjs-workshop/tasks.md)._
+```bash
+git clone <repo-url> hands-on-nestjs
+cd hands-on-nestjs
+git checkout main
+npm install                # ~2-3 min on typical broadband
+npm run start:dev          # boots on :3000
+```
+
+In a second terminal, verify the engine runs:
+
+```bash
+curl -s http://localhost:3000/health | jq
+# → { "status": "ok", "uptimeSec": 12 }
+
+curl -s http://localhost:3000/vroom | jq
+# → { "fact": "..." }     (a different fact each call)
+
+curl -s http://localhost:3000/vehicles | jq 'length'
+# → 12
+```
+
+If those three commands work, your environment is good. Stop the server (`Ctrl+C`) and continue with the workshop loop below.
 
 ## The workshop loop
 

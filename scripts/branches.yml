@@ -16,11 +16,17 @@
 #
 # Run `bash scripts/publish-branches.sh` to publish (idempotent).
 
-# Initially empty — entries are appended as each Ax commit lands.
-# After A1 (step 01 done), the first entry is:
-#   - name: 01-bootstrap-modules
-#     start: A0
-#     solution: A1
-# (Replace `A0` / `A1` with real commit SHAs.)
+# MVP delivery (Phases 1-3): two step pairs published.
+# Per research.md R1, every Ax commit is BOTH solution/0x AND
+# start/0(x+1) for the core sequence. start/01 is the foundational
+# tip (be2b707) — that is, A0 plus the cross-cutting Phase 2
+# additions, which are workshop infrastructure that must be present
+# from step 01 onward.
 
-branches: []
+branches:
+  - name: 01-bootstrap-modules
+    start: be2b707
+    solution: e294344
+  - name: 02-controllers-routing
+    start: e294344
+    solution: 7963f72
