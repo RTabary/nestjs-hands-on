@@ -30,4 +30,19 @@ export class AppConfigService {
   getMaintenanceQueueLimit(): number {
     return this.config.get('maintenanceQueueLimit', { infer: true });
   }
+
+  /**
+   * SQLite database path (introduced step S2 — Persistence).
+   * Resolution order:
+   *   1. `WORKSHOP_DB` env var — overrides everything; used by the
+   *      S2-persistence e2e test to point at a dedicated test file.
+   *   2. `NODE_ENV === 'test'` → `:memory:` — default for Jest, gives
+   *      every test file a fresh schema with no leftover state.
+   *   3. otherwise → `data/workshop.sqlite` (file-backed for dev/prod).
+   */
+  getDatabasePath(): string {
+    if (process.env.WORKSHOP_DB) return process.env.WORKSHOP_DB;
+    if (process.env.NODE_ENV === 'test') return ':memory:';
+    return 'data/workshop.sqlite';
+  }
 }

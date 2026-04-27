@@ -4,6 +4,8 @@ import {
   NotFoundException,
   OnModuleInit,
 } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { AppConfigService } from '../config/app-config.service';
 import { MaintenanceQueueFullException } from '../common/exceptions/maintenance-queue-full.exception';
 import { MissingFluxCapacitorException } from '../common/exceptions/missing-flux-capacitor.exception';
@@ -25,10 +27,9 @@ const DELOREAN_VEHICLE_ID = 'V009';
 
 @Injectable()
 export class MaintenanceOrdersService implements OnModuleInit {
-  private readonly store = new Map<string, MaintenanceOrder>();
-  private nextNum = 1;
-
   constructor(
+    @InjectRepository(MaintenanceOrder)
+    private readonly repo: Repository<MaintenanceOrder>,
     private readonly seed: SeedService,
     private readonly vehicles: VehiclesService,
     private readonly mechanics: MechanicsService,
@@ -36,125 +37,127 @@ export class MaintenanceOrdersService implements OnModuleInit {
     private readonly appConfig: AppConfigService,
   ) {}
 
-  onModuleInit(): void {
+  async onModuleInit(): Promise<void> {
     if (!this.seed.has('maintenance-orders')) {
       this.seed.register({
         entity: 'maintenance-orders',
         records: MAINTENANCE_ORDERS_SEED,
       });
     }
-    for (const order of this.seed.get<MaintenanceOrder>('maintenance-orders')) {
-      this.store.set(order.id, { ...order });
-      const num = parseInt(order.id.slice(2), 10);
-      if (Number.isFinite(num) && num >= this.nextNum) {
-        this.nextNum = num + 1;
-      }
+    const count = await this.repo.count();
+    if (count === 0) {
+      await this.repo.save(
+        this.seed.get<MaintenanceOrder>('maintenance-orders').map((o) => ({
+          ...o,
+          partIds: [...o.partIds],
+        })),
+      );
     }
   }
 
-  findAll(): MaintenanceOrder[] {
-    return [...this.store.values()];
+  findAll(): Promise<MaintenanceOrder[]> {
+    return this.repo.find();
   }
 
-  findOne(id: string): MaintenanceOrder {
-    const order = this.store.get(id);
+  async findOne(id: string): Promise<MaintenanceOrder> {
+    const order = await this.repo.findOneBy({ id });
     if (!order) {
       throw new NotFoundException(`MaintenanceOrder ${id} not found`);
     }
     return order;
   }
 
-  create(dto: CreateMaintenanceOrderDto): MaintenanceOrder {
-    this.assertValidReferences(dto);
+  async create(dto: CreateMaintenanceOrderDto): Promise<MaintenanceOrder> {
+    await this.assertValidReferences(dto);
     if (dto.scheduledFor.getTime() < Date.now()) {
       throw new BadRequestException(
         'scheduledFor must not be in the past at creation time',
       );
     }
-    this.assertQueueHasRoom();
-    const id = `MO${String(this.nextNum++).padStart(3, '0')}`;
+    await this.assertQueueHasRoom();
+    const id = await this.nextId();
     const now = new Date();
-    const order: MaintenanceOrder = {
+    const order = this.repo.create({
       id,
       vehicleId: dto.vehicleId,
       mechanicId: dto.mechanicId,
       partIds: [...dto.partIds],
       scheduledFor: dto.scheduledFor,
-      status: 'queued',
+      status: 'queued' as MaintenanceStatus,
       notes: dto.notes,
       createdAt: now,
       updatedAt: now,
-    };
-    this.store.set(id, order);
+    });
+    await this.repo.save(order);
     return order;
   }
 
-  update(id: string, dto: UpdateMaintenanceOrderDto): MaintenanceOrder {
-    const existing = this.findOne(id);
-    if (dto.vehicleId !== undefined) this.vehicles.findOne(dto.vehicleId);
-    if (dto.mechanicId !== undefined) this.mechanics.findOne(dto.mechanicId);
+  async update(
+    id: string,
+    dto: UpdateMaintenanceOrderDto,
+  ): Promise<MaintenanceOrder> {
+    const existing = await this.findOne(id);
+    if (dto.vehicleId !== undefined) await this.vehicles.findOne(dto.vehicleId);
+    if (dto.mechanicId !== undefined)
+      await this.mechanics.findOne(dto.mechanicId);
     if (dto.partIds !== undefined) {
-      for (const pid of dto.partIds) this.spareParts.findOne(pid);
+      for (const pid of dto.partIds) await this.spareParts.findOne(pid);
     }
-    const updated: MaintenanceOrder = {
-      ...existing,
-      ...dto,
-      updatedAt: new Date(),
-    };
-    this.store.set(id, updated);
-    return updated;
+    Object.assign(existing, dto, { updatedAt: new Date() });
+    await this.repo.save(existing);
+    return existing;
   }
 
-  remove(id: string): void {
-    if (!this.store.delete(id)) {
+  async remove(id: string): Promise<void> {
+    const result = await this.repo.delete(id);
+    if (result.affected === 0) {
       throw new NotFoundException(`MaintenanceOrder ${id} not found`);
     }
   }
 
-  transition(id: string, target: MaintenanceStatus): MaintenanceOrder {
-    const order = this.findOne(id);
+  async transition(
+    id: string,
+    target: MaintenanceStatus,
+  ): Promise<MaintenanceOrder> {
+    const order = await this.findOne(id);
     this.assertTransitionAllowed(order.status, target);
 
     if (target === 'completed') {
       this.assertFluxCapacitorPresentIfDeLorean(order);
-      // Atomic stock decrement: do an existence-and-stock dry run
-      // first, then commit. Either every part decrements or nothing.
+      // Atomic stock decrement: dry-run first then commit. Either every
+      // part decrements or nothing.
       for (const partId of order.partIds) {
-        const part = this.spareParts.findOne(partId);
+        const part = await this.spareParts.findOne(partId);
         if (part.stock <= 0) {
           throw new OutOfStockException(partId);
         }
       }
       for (const partId of order.partIds) {
-        this.spareParts.decrementStock(partId);
+        await this.spareParts.decrementStock(partId);
       }
     }
 
-    const updated: MaintenanceOrder = {
-      ...order,
-      status: target,
-      updatedAt: new Date(),
-    };
-    this.store.set(id, updated);
-    return updated;
+    order.status = target;
+    order.updatedAt = new Date();
+    await this.repo.save(order);
+    return order;
   }
 
-  private assertQueueHasRoom(): void {
+  private async assertQueueHasRoom(): Promise<void> {
     const limit = this.appConfig.getMaintenanceQueueLimit();
-    let queued = 0;
-    for (const order of this.store.values()) {
-      if (order.status === 'queued') queued++;
-    }
+    const queued = await this.repo.count({ where: { status: 'queued' } });
     if (queued >= limit) {
       throw new MaintenanceQueueFullException(limit);
     }
   }
 
-  private assertValidReferences(dto: CreateMaintenanceOrderDto): void {
-    this.vehicles.findOne(dto.vehicleId); // throws 404
-    this.mechanics.findOne(dto.mechanicId);
+  private async assertValidReferences(
+    dto: CreateMaintenanceOrderDto,
+  ): Promise<void> {
+    await this.vehicles.findOne(dto.vehicleId);
+    await this.mechanics.findOne(dto.mechanicId);
     for (const partId of dto.partIds) {
-      this.spareParts.findOne(partId);
+      await this.spareParts.findOne(partId);
     }
   }
 
@@ -182,5 +185,15 @@ export class MaintenanceOrdersService implements OnModuleInit {
     ) {
       throw new MissingFluxCapacitorException(order.vehicleId);
     }
+  }
+
+  private async nextId(): Promise<string> {
+    const last = await this.repo.find({ order: { id: 'DESC' }, take: 1 });
+    let n = 1;
+    if (last.length > 0) {
+      const parsed = parseInt(last[0].id.slice(2), 10);
+      if (Number.isFinite(parsed)) n = parsed + 1;
+    }
+    return `MO${String(n).padStart(3, '0')}`;
   }
 }

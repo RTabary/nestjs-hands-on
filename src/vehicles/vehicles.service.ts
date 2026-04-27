@@ -4,6 +4,8 @@ import {
   NotFoundException,
   OnModuleInit,
 } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { ManufacturersService } from '../manufacturers/manufacturers.service';
 import { SeedService } from '../seed/seed.service';
 import { VEHICLES_SEED } from '../seed/vehicles.seed';
@@ -13,75 +15,89 @@ import { Vehicle } from './entities/vehicle.entity';
 
 @Injectable()
 export class VehiclesService implements OnModuleInit {
-  private readonly store = new Map<string, Vehicle>();
-  private nextNum = 1;
-
   constructor(
+    @InjectRepository(Vehicle) private readonly repo: Repository<Vehicle>,
     private readonly seed: SeedService,
     private readonly manufacturers: ManufacturersService,
   ) {}
 
-  onModuleInit(): void {
+  /**
+   * Idempotent boot-time seed: only fires if the table is empty.
+   * Survives restart on file-backed SQLite; on `:memory:` (test mode)
+   * each fresh boot reseeds.
+   */
+  async onModuleInit(): Promise<void> {
     if (!this.seed.has('vehicles')) {
       this.seed.register({ entity: 'vehicles', records: VEHICLES_SEED });
     }
-    for (const vehicle of this.seed.get<Vehicle>('vehicles')) {
-      this.store.set(vehicle.id, { ...vehicle });
-      const num = parseInt(vehicle.id.slice(1), 10);
-      if (Number.isFinite(num) && num >= this.nextNum) {
-        this.nextNum = num + 1;
-      }
+    const count = await this.repo.count();
+    if (count === 0) {
+      await this.repo.save(
+        this.seed.get<Vehicle>('vehicles').map((v) => ({ ...v })),
+      );
     }
   }
 
-  findAll(): Vehicle[] {
-    return [...this.store.values()];
+  findAll(): Promise<Vehicle[]> {
+    return this.repo.find();
   }
 
-  findOne(id: string): Vehicle {
-    const vehicle = this.store.get(id);
+  async findOne(id: string): Promise<Vehicle> {
+    const vehicle = await this.repo.findOneBy({ id });
     if (!vehicle) {
       throw new NotFoundException(`Vehicle ${id} not found`);
     }
     return vehicle;
   }
 
-  create(dto: CreateVehicleDto): Vehicle {
-    this.assertManufacturerExists(dto.manufacturerId);
-    const id = `V${String(this.nextNum++).padStart(3, '0')}`;
+  async create(dto: CreateVehicleDto): Promise<Vehicle> {
+    await this.assertManufacturerExists(dto.manufacturerId);
+    const id = await this.nextId();
     const now = new Date();
-    const vehicle: Vehicle = {
+    const vehicle = this.repo.create({
       id,
       ...dto,
       createdAt: now,
       updatedAt: now,
-    };
-    this.store.set(id, vehicle);
+    });
+    await this.repo.save(vehicle);
     return vehicle;
   }
 
-  update(id: string, dto: UpdateVehicleDto): Vehicle {
-    const existing = this.findOne(id);
+  async update(id: string, dto: UpdateVehicleDto): Promise<Vehicle> {
+    const existing = await this.findOne(id);
     if (dto.manufacturerId !== undefined) {
-      this.assertManufacturerExists(dto.manufacturerId);
+      await this.assertManufacturerExists(dto.manufacturerId);
     }
-    const updated: Vehicle = {
-      ...existing,
-      ...dto,
-      updatedAt: new Date(),
-    };
-    this.store.set(id, updated);
-    return updated;
+    Object.assign(existing, dto, { updatedAt: new Date() });
+    await this.repo.save(existing);
+    return existing;
   }
 
-  remove(id: string): void {
-    if (!this.store.delete(id)) {
+  async remove(id: string): Promise<void> {
+    const result = await this.repo.delete(id);
+    if (result.affected === 0) {
       throw new NotFoundException(`Vehicle ${id} not found`);
     }
   }
 
-  private assertManufacturerExists(manufacturerId: string): void {
-    if (!this.manufacturers.exists(manufacturerId)) {
+  /**
+   * Generate the next ID as 'V' + zero-padded next number. Reads
+   * max(id) from the DB so it works whether the table was seeded,
+   * empty, or had rows deleted.
+   */
+  private async nextId(): Promise<string> {
+    const last = await this.repo.find({ order: { id: 'DESC' }, take: 1 });
+    let n = 1;
+    if (last.length > 0) {
+      const parsed = parseInt(last[0].id.slice(1), 10);
+      if (Number.isFinite(parsed)) n = parsed + 1;
+    }
+    return `V${String(n).padStart(3, '0')}`;
+  }
+
+  private async assertManufacturerExists(manufacturerId: string): Promise<void> {
+    if (!(await this.manufacturers.exists(manufacturerId))) {
       throw new BadRequestException(
         `manufacturerId '${manufacturerId}' does not exist`,
       );

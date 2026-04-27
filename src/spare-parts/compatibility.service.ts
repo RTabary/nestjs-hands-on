@@ -17,6 +17,9 @@ import { VehiclesService } from '../vehicles/vehicles.service';
  * VehiclesModule (which imports SparePartsModule) — that avoids the
  * circular module dependency that would otherwise arise from making
  * SparePartsModule depend on VehiclesModule.
+ *
+ * Step S2 (Persistence) made the underlying services async; this
+ * service follows suit so the async chain stays consistent.
  */
 @Injectable()
 export class CompatibilityService {
@@ -25,12 +28,11 @@ export class CompatibilityService {
     private readonly spareParts: SparePartsService,
   ) {}
 
-  findCompatible(vehicleId: string): SparePart[] {
+  async findCompatible(vehicleId: string): Promise<SparePart[]> {
     // Throws NotFoundException → surfaces as 404 if the vehicle is
     // unknown. Cleaner than re-implementing the lookup here.
-    this.vehicles.findOne(vehicleId);
-    return this.spareParts
-      .findAll()
-      .filter((part) => part.compatibleVehicleIds.includes(vehicleId));
+    await this.vehicles.findOne(vehicleId);
+    const all = await this.spareParts.findAll();
+    return all.filter((part) => part.compatibleVehicleIds.includes(vehicleId));
   }
 }

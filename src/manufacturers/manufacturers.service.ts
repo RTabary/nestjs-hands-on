@@ -1,4 +1,6 @@
 import { Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { SeedService } from '../seed/seed.service';
 import { MANUFACTURERS_SEED } from '../seed/manufacturers.seed';
 import { CreateManufacturerDto } from './dto/create-manufacturer.dto';
@@ -7,74 +9,73 @@ import { Manufacturer } from './entities/manufacturer.entity';
 
 @Injectable()
 export class ManufacturersService implements OnModuleInit {
-  private readonly store = new Map<string, Manufacturer>();
-  private nextNum = 1;
+  constructor(
+    @InjectRepository(Manufacturer)
+    private readonly repo: Repository<Manufacturer>,
+    private readonly seed: SeedService,
+  ) {}
 
-  constructor(private readonly seed: SeedService) {}
-
-  onModuleInit(): void {
+  async onModuleInit(): Promise<void> {
     if (!this.seed.has('manufacturers')) {
       this.seed.register({
         entity: 'manufacturers',
         records: MANUFACTURERS_SEED,
       });
     }
-    for (const m of this.seed.get<Manufacturer>('manufacturers')) {
-      this.store.set(m.id, { ...m });
-      const num = parseInt(m.id.slice(3), 10);
-      if (Number.isFinite(num) && num >= this.nextNum) {
-        this.nextNum = num + 1;
-      }
+    const count = await this.repo.count();
+    if (count === 0) {
+      await this.repo.save(
+        this.seed.get<Manufacturer>('manufacturers').map((m) => ({ ...m })),
+      );
     }
   }
 
-  findAll(): Manufacturer[] {
-    return [...this.store.values()];
+  findAll(): Promise<Manufacturer[]> {
+    return this.repo.find();
   }
 
-  findOne(id: string): Manufacturer {
-    const m = this.store.get(id);
+  async findOne(id: string): Promise<Manufacturer> {
+    const m = await this.repo.findOneBy({ id });
     if (!m) {
       throw new NotFoundException(`Manufacturer ${id} not found`);
     }
     return m;
   }
 
-  /**
-   * Used by VehiclesService to validate the manufacturerId FK on
-   * create/update. Returns true if a manufacturer exists with that id.
-   */
-  exists(id: string): boolean {
-    return this.store.has(id);
+  async exists(id: string): Promise<boolean> {
+    const count = await this.repo.count({ where: { id } });
+    return count > 0;
   }
 
-  create(dto: CreateManufacturerDto): Manufacturer {
-    const id = `MFR${String(this.nextNum++).padStart(3, '0')}`;
+  async create(dto: CreateManufacturerDto): Promise<Manufacturer> {
+    const id = await this.nextId();
     const now = new Date();
-    const m: Manufacturer = {
-      id,
-      ...dto,
-      createdAt: now,
-      updatedAt: now,
-    };
-    this.store.set(id, m);
+    const m = this.repo.create({ id, ...dto, createdAt: now, updatedAt: now });
+    await this.repo.save(m);
     return m;
   }
 
-  update(id: string, dto: UpdateManufacturerDto): Manufacturer {
-    const existing = this.findOne(id);
-    const updated: Manufacturer = {
-      ...existing,
-      ...dto,
-      updatedAt: new Date(),
-    };
-    this.store.set(id, updated);
-    return updated;
+  async update(id: string, dto: UpdateManufacturerDto): Promise<Manufacturer> {
+    const existing = await this.findOne(id);
+    Object.assign(existing, dto, { updatedAt: new Date() });
+    await this.repo.save(existing);
+    return existing;
   }
 
-  remove(id: string): void {
-    if (!this.store.delete(id)) {
+  async remove(id: string): Promise<void> {
+    const result = await this.repo.delete(id);
+    if (result.affected === 0) {
       throw new NotFoundException(`Manufacturer ${id} not found`);
     }
+  }
+
+  private async nextId(): Promise<string> {
+    const last = await this.repo.find({ order: { id: 'DESC' }, take: 1 });
+    let n = 1;
+    if (last.length > 0) {
+      const parsed = parseInt(last[0].id.slice(3), 10);
+      if (Number.isFinite(parsed)) n = parsed + 1;
+    }
+    return `MFR${String(n).padStart(3, '0')}`;
   }
 }

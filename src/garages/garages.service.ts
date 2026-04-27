@@ -1,4 +1,6 @@
 import { Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { SeedService } from '../seed/seed.service';
 import { GARAGES_SEED } from '../seed/garages.seed';
 import { CreateGarageDto } from './dto/create-garage.dto';
@@ -7,61 +9,70 @@ import { Garage } from './entities/garage.entity';
 
 @Injectable()
 export class GaragesService implements OnModuleInit {
-  private readonly store = new Map<string, Garage>();
-  private nextNum = 1;
+  constructor(
+    @InjectRepository(Garage) private readonly repo: Repository<Garage>,
+    private readonly seed: SeedService,
+  ) {}
 
-  constructor(private readonly seed: SeedService) {}
-
-  onModuleInit(): void {
+  async onModuleInit(): Promise<void> {
     if (!this.seed.has('garages')) {
       this.seed.register({ entity: 'garages', records: GARAGES_SEED });
     }
-    for (const g of this.seed.get<Garage>('garages')) {
-      this.store.set(g.id, { ...g, mechanicIds: [...g.mechanicIds] });
-      const num = parseInt(g.id.slice(1), 10);
-      if (Number.isFinite(num) && num >= this.nextNum) {
-        this.nextNum = num + 1;
-      }
+    const count = await this.repo.count();
+    if (count === 0) {
+      await this.repo.save(
+        this.seed.get<Garage>('garages').map((g) => ({
+          ...g,
+          mechanicIds: [...g.mechanicIds],
+        })),
+      );
     }
   }
 
-  findAll(): Garage[] {
-    return [...this.store.values()];
+  findAll(): Promise<Garage[]> {
+    return this.repo.find();
   }
 
-  findOne(id: string): Garage {
-    const g = this.store.get(id);
+  async findOne(id: string): Promise<Garage> {
+    const g = await this.repo.findOneBy({ id });
     if (!g) throw new NotFoundException(`Garage ${id} not found`);
     return g;
   }
 
-  exists(id: string): boolean {
-    return this.store.has(id);
+  async exists(id: string): Promise<boolean> {
+    const count = await this.repo.count({ where: { id } });
+    return count > 0;
   }
 
-  create(dto: CreateGarageDto): Garage {
-    const id = `G${String(this.nextNum++).padStart(3, '0')}`;
+  async create(dto: CreateGarageDto): Promise<Garage> {
+    const id = await this.nextId();
     const now = new Date();
-    const g: Garage = {
-      id,
-      ...dto,
-      createdAt: now,
-      updatedAt: now,
-    };
-    this.store.set(id, g);
+    const g = this.repo.create({ id, ...dto, createdAt: now, updatedAt: now });
+    await this.repo.save(g);
     return g;
   }
 
-  update(id: string, dto: UpdateGarageDto): Garage {
-    const existing = this.findOne(id);
-    const updated: Garage = { ...existing, ...dto, updatedAt: new Date() };
-    this.store.set(id, updated);
-    return updated;
+  async update(id: string, dto: UpdateGarageDto): Promise<Garage> {
+    const existing = await this.findOne(id);
+    Object.assign(existing, dto, { updatedAt: new Date() });
+    await this.repo.save(existing);
+    return existing;
   }
 
-  remove(id: string): void {
-    if (!this.store.delete(id)) {
+  async remove(id: string): Promise<void> {
+    const result = await this.repo.delete(id);
+    if (result.affected === 0) {
       throw new NotFoundException(`Garage ${id} not found`);
     }
+  }
+
+  private async nextId(): Promise<string> {
+    const last = await this.repo.find({ order: { id: 'DESC' }, take: 1 });
+    let n = 1;
+    if (last.length > 0) {
+      const parsed = parseInt(last[0].id.slice(1), 10);
+      if (Number.isFinite(parsed)) n = parsed + 1;
+    }
+    return `G${String(n).padStart(3, '0')}`;
   }
 }
