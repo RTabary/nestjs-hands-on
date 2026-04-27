@@ -1,20 +1,29 @@
 import { Module, ValidationPipe } from '@nestjs/common';
-import { APP_PIPE } from '@nestjs/core';
+import { APP_FILTER, APP_PIPE } from '@nestjs/core';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
+import { GaragesModule } from './garages/garages.module';
+import { MaintenanceOrdersModule } from './maintenance-orders/maintenance-orders.module';
 import { ManufacturersModule } from './manufacturers/manufacturers.module';
+import { MechanicsModule } from './mechanics/mechanics.module';
 import { SeedModule } from './seed/seed.module';
 import { SparePartsModule } from './spare-parts/spare-parts.module';
 import { VehiclesModule } from './vehicles/vehicles.module';
 
 @Module({
-  imports: [SeedModule, ManufacturersModule, SparePartsModule, VehiclesModule],
+  imports: [
+    SeedModule,
+    ManufacturersModule,
+    SparePartsModule,
+    VehiclesModule,
+    GaragesModule,
+    MechanicsModule,
+    MaintenanceOrdersModule,
+  ],
   controllers: [AppController],
   providers: [
     AppService,
-    // Step 04: register ValidationPipe at the module level (not in
-    // main.ts) so it applies in tests too — Test.createTestingModule
-    // creates the Nest app without running main.ts.
     {
       provide: APP_PIPE,
       useValue: new ValidationPipe({
@@ -22,6 +31,10 @@ import { VehiclesModule } from './vehicles/vehicles.module';
         transform: true,
         forbidNonWhitelisted: true,
       }),
+    },
+    {
+      provide: APP_FILTER,
+      useClass: AllExceptionsFilter,
     },
   ],
 })

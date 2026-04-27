@@ -32,8 +32,12 @@ describe('Step 05 — Exception Filters (e2e)', () => {
     // required part, then attempt to transition it to completed.
     // Step 05 introduces the maintenance-orders endpoint plus the
     // MissingFluxCapacitorException — both green by A5.
+    //
+    // The x-api-key header is forward-compatible: ignored on
+    // solution/05 (no guard yet), required from solution/06 onward.
     const create = await request(app.getHttpServer())
       .post('/maintenance-orders')
+      .set('x-api-key', 'pit-pass')
       .send({
         vehicleId: 'V009',
         mechanicId: 'MEC001',
@@ -44,11 +48,13 @@ describe('Step 05 — Exception Filters (e2e)', () => {
 
     await request(app.getHttpServer())
       .post(`/maintenance-orders/${create.body.id}/transition`)
+      .set('x-api-key', 'pit-pass')
       .send({ status: 'in_progress' })
       .expect(200);
 
     const completion = await request(app.getHttpServer())
       .post(`/maintenance-orders/${create.body.id}/transition`)
+      .set('x-api-key', 'pit-pass')
       .send({ status: 'completed' })
       .expect(409);
 

@@ -66,4 +66,15 @@ export class SparePartsService implements OnModuleInit {
       throw new NotFoundException(`SparePart ${id} not found`);
     }
   }
+
+  /**
+   * Used by MaintenanceOrdersService when a maintenance order
+   * transitions to "completed". Caller is responsible for the
+   * dry-run stock check first; this method only mutates.
+   */
+  decrementStock(id: string): void {
+    const part = this.findOne(id);
+    part.stock = Math.max(0, part.stock - 1);
+    part.updatedAt = new Date();
+  }
 }
