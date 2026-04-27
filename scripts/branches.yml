@@ -48,3 +48,9 @@ branches:
   - name: 08-testing
     start: dbc4217
     solution: 9ba56fd
+  # Stretch features (non-chained per FR-007): each `start/SX` = A8 =
+  # solution/08-testing = 9ba56fd; the solution is the stretch's
+  # authoring tip, forked off A8 directly.
+  - name: S2-persistence
+    start: 9ba56fd
+    solution: df65af3
