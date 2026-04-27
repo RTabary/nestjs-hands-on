@@ -1,9 +1,6 @@
-// All fields optional. Step 04 will refactor this to derive from
-// CreateVehicleDto via PartialType from @nestjs/mapped-types.
-export class UpdateVehicleDto {
-  make?: string;
-  model?: string;
-  year?: number;
-  vin?: string;
-  mileageKm?: number;
-}
+import { PartialType } from '@nestjs/mapped-types';
+import { CreateVehicleDto } from './create-vehicle.dto';
+
+// PartialType derives "all fields optional" while preserving every
+// validation decorator from CreateVehicleDto. One source of truth.
+export class UpdateVehicleDto extends PartialType(CreateVehicleDto) {}

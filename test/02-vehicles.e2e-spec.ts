@@ -20,6 +20,9 @@ describe('Step 02 — Controllers & Routing (e2e)', () => {
   });
 
   it('POST /vehicles creates a vehicle and round-trips via GET /:id', async () => {
+    // manufacturerId is unused on solution/02 (no validation yet), but
+    // becomes required from step 04 onward. Including it here keeps
+    // this test green across the cumulative chain.
     const create = await request(app.getHttpServer())
       .post('/vehicles')
       .send({
@@ -28,6 +31,7 @@ describe('Step 02 — Controllers & Routing (e2e)', () => {
         year: 2020,
         vin: 'WMWXM5C50K2T12345',
         mileageKm: 42000,
+        manufacturerId: 'MFR003',
       })
       .expect(201);
     expect(typeof create.body.id).toBe('string');

@@ -1,4 +1,10 @@
-import { Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+  OnModuleInit,
+} from '@nestjs/common';
+import { ManufacturersService } from '../manufacturers/manufacturers.service';
 import { SeedService } from '../seed/seed.service';
 import { VEHICLES_SEED } from '../seed/vehicles.seed';
 import { CreateVehicleDto } from './dto/create-vehicle.dto';
@@ -10,7 +16,10 @@ export class VehiclesService implements OnModuleInit {
   private readonly store = new Map<string, Vehicle>();
   private nextNum = 1;
 
-  constructor(private readonly seed: SeedService) {}
+  constructor(
+    private readonly seed: SeedService,
+    private readonly manufacturers: ManufacturersService,
+  ) {}
 
   onModuleInit(): void {
     if (!this.seed.has('vehicles')) {
@@ -38,6 +47,7 @@ export class VehiclesService implements OnModuleInit {
   }
 
   create(dto: CreateVehicleDto): Vehicle {
+    this.assertManufacturerExists(dto.manufacturerId);
     const id = `V${String(this.nextNum++).padStart(3, '0')}`;
     const now = new Date();
     const vehicle: Vehicle = {
@@ -52,6 +62,9 @@ export class VehiclesService implements OnModuleInit {
 
   update(id: string, dto: UpdateVehicleDto): Vehicle {
     const existing = this.findOne(id);
+    if (dto.manufacturerId !== undefined) {
+      this.assertManufacturerExists(dto.manufacturerId);
+    }
     const updated: Vehicle = {
       ...existing,
       ...dto,
@@ -64,6 +77,14 @@ export class VehiclesService implements OnModuleInit {
   remove(id: string): void {
     if (!this.store.delete(id)) {
       throw new NotFoundException(`Vehicle ${id} not found`);
+    }
+  }
+
+  private assertManufacturerExists(manufacturerId: string): void {
+    if (!this.manufacturers.exists(manufacturerId)) {
+      throw new BadRequestException(
+        `manufacturerId '${manufacturerId}' does not exist`,
+      );
     }
   }
 }

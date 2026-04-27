@@ -5,6 +5,7 @@ export class Vehicle {
   year!: number;
   vin!: string;
   mileageKm!: number;
+  manufacturerId!: string;
   createdAt!: Date;
   updatedAt!: Date;
 }
