@@ -42,3 +42,6 @@ branches:
   - name: 06-guards
     start: b03e886
     solution: 1d93505
+  - name: 07-configuration
+    start: 1d93505
+    solution: dbc4217
